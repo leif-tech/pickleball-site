@@ -98,33 +98,19 @@ export default function AuthModal({
     codeInputRefs.current[focusIndex]?.focus();
   };
 
-  // Step 1: Submit signup form → send verification code
+  // Submit signup form → create account directly (email verification disabled for now)
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    try {
-      const res = await fetch("/api/auth/send-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to send code");
-      } else {
-        setSignupStep("verify");
-        setResendCooldown(60);
-        // Focus first code input after render
-        setTimeout(() => codeInputRefs.current[0]?.focus(), 100);
-      }
-    } catch {
-      setError("Network error");
-    }
-
+    const err = await signup(name, email, phone, password);
     setLoading(false);
+    if (err) {
+      setError(err);
+    } else {
+      onClose();
+    }
   };
 
   // Step 2: Verify code → create account
@@ -399,7 +385,7 @@ export default function AuthModal({
                   {loading
                     ? "Please wait..."
                     : tab === "signup"
-                    ? "Continue"
+                    ? "Create Account"
                     : "Log In"}
                 </button>
               </form>
