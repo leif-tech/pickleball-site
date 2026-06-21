@@ -241,7 +241,7 @@ function Courts() {
   ];
 
   return (
-    <section id="courts" className="relative z-[1] pt-12 sm:pt-14 pb-6 sm:pb-8 px-6 lg:px-10 bg-cream" ref={ref}>
+    <section id="courts" className={`relative ${lightbox ? 'z-[60]' : 'z-[1]'} pt-12 sm:pt-14 pb-6 sm:pb-8 px-6 lg:px-10 bg-cream`} ref={ref}>
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className={`text-center mb-8 ${isVisible ? "animate-reveal-up" : "opacity-0"}`}>
