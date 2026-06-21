@@ -102,9 +102,15 @@ export default function AuthModal({
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (name.trim().split(/\s+/).length < 2) {
+      setError("Please enter your full name (first and last name)");
+      return;
+    }
+
     setLoading(true);
 
-    const err = await signup(name, email, phone, password);
+    const err = await signup(name.trim(), email, phone, password);
     setLoading(false);
     if (err) {
       setError(err);
@@ -326,14 +332,14 @@ export default function AuthModal({
               <form onSubmit={tab === "signup" ? handleSignupSubmit : handleLoginSubmit} className="space-y-4">
                 {tab === "signup" && (
                   <div>
-                    <label className="block text-xs text-warm-gray uppercase tracking-wider mb-2">Name</label>
+                    <label className="block text-xs text-warm-gray uppercase tracking-wider mb-2">Full Name</label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
                       className="w-full bg-cream border border-border rounded-xl px-4 py-3 text-foreground placeholder-warm-gray-light text-sm focus:outline-none focus:border-accent/40 transition-colors"
-                      placeholder="Your full name"
+                      placeholder="First and last name"
                     />
                   </div>
                 )}
