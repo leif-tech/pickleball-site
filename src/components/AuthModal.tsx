@@ -9,9 +9,11 @@ type SignupStep = "form" | "verify";
 export default function AuthModal({
   onClose,
   initialTab = "signup",
+  redirectTo,
 }: {
   onClose: () => void;
   initialTab?: Tab;
+  redirectTo?: string;
 }) {
   const { login, signup } = useAuth();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -114,6 +116,8 @@ export default function AuthModal({
     setLoading(false);
     if (err) {
       setError(err);
+    } else if (redirectTo) {
+      window.location.href = redirectTo;
     } else {
       onClose();
     }
@@ -150,6 +154,8 @@ export default function AuthModal({
       const err = await signup(name, email, phone, password);
       if (err) {
         setError(err);
+      } else if (redirectTo) {
+        window.location.href = redirectTo;
       } else {
         onClose();
       }
@@ -198,6 +204,8 @@ export default function AuthModal({
     setLoading(false);
     if (err) {
       setError(err);
+    } else if (redirectTo) {
+      window.location.href = redirectTo;
     } else {
       onClose();
     }

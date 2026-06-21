@@ -697,7 +697,7 @@ export default function Home() {
       <FloatingBookButton />
       <Hero onAuthClick={openAuth} user={user} onLogout={logout} />
       {showAuth && (
-        <AuthModal onClose={() => setShowAuth(false)} initialTab={authTab} />
+        <AuthModal onClose={() => setShowAuth(false)} initialTab={authTab} redirectTo="/book" />
       )}
       <Courts />
 <MapSection />
