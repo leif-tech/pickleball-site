@@ -145,6 +145,10 @@ export default function BookPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [receiptPath, setReceiptPath] = useState("");
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"pay" | "upload" | "confirm">("pay");
+  const [referenceNumber, setReferenceNumber] = useState("");
 
   // Court lightbox
   const [courtLightbox, setCourtLightbox] = useState<{ photo: string; name: string } | null>(null);
@@ -271,8 +275,16 @@ export default function BookPage() {
           </a>
 
           <div className="flex items-center gap-2">
-            {user ? (
+            {user && (
               <>
+                {user.role === "admin" && (
+                  <a
+                    href="/admin"
+                    className="hidden sm:inline-flex px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 rounded-full hover:bg-accent hover:text-white transition-all duration-200"
+                  >
+                    Admin
+                  </a>
+                )}
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-cream rounded-full">
                   <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center">
                     <span className="text-[10px] text-white font-bold">{user.name.charAt(0)}</span>
@@ -286,21 +298,6 @@ export default function BookPage() {
                   Log Out
                 </button>
               </>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="group flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-xs font-medium rounded-full btn-premium shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                Sign Up / Log In
-                <svg className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
             )}
           </div>
         </div>
@@ -911,7 +908,7 @@ export default function BookPage() {
               </span>
             </div>
             <button
-              onClick={() => setShowConfirm(true)}
+              onClick={() => { setPaymentStep("pay"); setReceiptPath(""); setReferenceNumber(""); setBookingError(""); setShowConfirm(true); }}
               className="btn-premium click-bounce animate-soft-float px-5 sm:px-10 py-3 bg-accent text-white text-sm font-medium rounded-full shrink-0"
             >
               Book Now
@@ -1000,12 +997,15 @@ export default function BookPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="font-serif text-2xl font-bold text-foreground mb-2">You&apos;re Booked!</h3>
-                  <p className="text-sm text-warm-gray mb-8">See you on the court.</p>
+                  <h3 className="font-serif text-2xl font-bold text-foreground mb-2">Booking Submitted!</h3>
+                  <p className="text-sm text-warm-gray mb-8">Your receipt is being reviewed. See you on the court!</p>
                   <button
                     onClick={() => {
                       setShowConfirm(false);
                       setBookingSuccess(false);
+                      setPaymentStep("pay");
+                      setReceiptPath("");
+                      setReferenceNumber("");
                       clearAll();
                     }}
                     className="w-full py-3.5 bg-accent text-white text-sm font-medium rounded-full btn-premium"
@@ -1015,22 +1015,44 @@ export default function BookPage() {
                 </div>
               ) : (
                 <>
-                  <h2 className="font-serif text-2xl font-bold text-foreground mb-1">Confirm Booking</h2>
-                  <p className="text-sm text-warm-gray mb-6">{formatDateFull(selectedDate)}</p>
+                  {/* Step indicator */}
+                  <div className="flex items-center gap-2 mb-5">
+                    {["Pay", "Upload Receipt", "Confirm"].map((label, i) => {
+                      const stepIndex = i === 0 ? "pay" : i === 1 ? "upload" : "confirm";
+                      const steps = ["pay", "upload", "confirm"];
+                      const currentIndex = steps.indexOf(paymentStep);
+                      const isActive = i <= currentIndex;
+                      return (
+                        <div key={label} className="flex items-center gap-2 flex-1">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                            isActive ? "bg-accent text-white" : "bg-cream text-warm-gray"
+                          }`}>{i + 1}</div>
+                          <span className={`text-[11px] hidden sm:inline ${isActive ? "text-foreground font-medium" : "text-warm-gray"}`}>{label}</span>
+                          {i < 2 && <div className={`flex-1 h-px ${isActive && stepIndex !== paymentStep ? "bg-accent" : "bg-border"}`} />}
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                  <div className="space-y-4 mb-6">
+                  <h2 className="font-serif text-xl font-bold text-foreground mb-1">
+                    {paymentStep === "pay" ? "Pay via GCash or Maya" : paymentStep === "upload" ? "Upload Your Receipt" : "Confirm Booking"}
+                  </h2>
+                  <p className="text-sm text-warm-gray mb-4">{formatDateFull(selectedDate)}</p>
+
+                  {/* Booking summary (always shown) */}
+                  <div className="space-y-3 mb-4">
                     {COURTS.filter((c) => selectedSlots.some((s) => s.courtId === c.id)).map((court) => {
                       const slots = selectedSlots.filter((s) => s.courtId === court.id).sort((a, b) => a.hour - b.hour);
                       const subtotal = slots.reduce((sum, s) => sum + getRate(s.hour), 0);
                       return (
-                        <div key={court.id} className="bg-cream rounded-xl p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-semibold text-foreground">{court.name}</p>
+                        <div key={court.id} className="bg-cream rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-semibold text-foreground">{court.name}</p>
                             <span className="text-[10px] text-warm-gray">{court.type}</span>
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-0.5">
                             {slots.map((s) => (
-                              <div key={s.hour} className="flex items-center justify-between text-xs">
+                              <div key={s.hour} className="flex items-center justify-between text-[11px]">
                                 <span className="text-foreground">
                                   {formatHour(s.hour)}:00 - {formatHour(s.hour + 1)}:00 {formatAmPm(s.hour + 1 === 12 ? 12 : s.hour)}
                                 </span>
@@ -1038,73 +1060,233 @@ export default function BookPage() {
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-end mt-2 pt-2 border-t border-border/50">
-                            <span className="text-xs font-semibold text-foreground">&#8369;{subtotal.toLocaleString()}</span>
+                          <div className="flex justify-end mt-1 pt-1 border-t border-border/50">
+                            <span className="text-[11px] font-semibold text-foreground">&#8369;{subtotal.toLocaleString()}</span>
                           </div>
                         </div>
                       );
                     })}
-
-                    <div className="flex justify-between items-baseline pt-2">
+                    <div className="flex justify-between items-baseline">
                       <span className="text-sm text-warm-gray">Total</span>
-                      <span className="font-serif text-3xl font-bold text-foreground">
+                      <span className="font-serif text-2xl font-bold text-foreground">
                         &#8369;{totalPrice.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  {bookingError && (
-                    <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-                      {bookingError}
+                  {/* Step 1: Pay */}
+                  {paymentStep === "pay" && (
+                    <div className="mb-4">
+                      <div className="bg-cream rounded-xl p-4 mb-3">
+                        <p className="text-xs text-warm-gray mb-3 text-center">Scan the QR code below to pay via GCash or Maya</p>
+                        <div className="flex gap-3 justify-center">
+                          <div className="text-center">
+                            <div className="w-32 h-32 bg-white rounded-lg border border-border flex items-center justify-center mb-1">
+                              <div className="text-center">
+                                <svg className="w-8 h-8 text-blue-500 mx-auto mb-1" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm8-1h7v7h-7V3zm1 1v5h5V4h-5zM3 12h7v7H3v-7zm1 1v5h5v-5H4zm11 0h1v1h-1v-1zm-3-1h1v3h-1v1h2v-1h1v2h-2v1h-1v-1h-1v-1h1v-1h-1v-2zm5 0h1v1h-1v-1zm0 2h1v3h-2v-1h1v-2zm-2 4h1v1h-1v-1zm2 0h2v1h-2v-1z"/>
+                                </svg>
+                                <p className="text-[10px] text-warm-gray">GCash QR</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-medium text-blue-600">GCash</span>
+                          </div>
+                          <div className="text-center">
+                            <div className="w-32 h-32 bg-white rounded-lg border border-border flex items-center justify-center mb-1">
+                              <div className="text-center">
+                                <svg className="w-8 h-8 text-green-500 mx-auto mb-1" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm8-1h7v7h-7V3zm1 1v5h5V4h-5zM3 12h7v7H3v-7zm1 1v5h5v-5H4zm11 0h1v1h-1v-1zm-3-1h1v3h-1v1h2v-1h1v2h-2v1h-1v-1h-1v-1h1v-1h-1v-2zm5 0h1v1h-1v-1zm0 2h1v3h-2v-1h1v-2zm-2 4h1v1h-1v-1zm2 0h2v1h-2v-1z"/>
+                                </svg>
+                                <p className="text-[10px] text-warm-gray">Maya QR</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-medium text-green-600">Maya</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-warm-gray text-center mb-4">
+                        After paying, take a screenshot of your receipt and click &quot;Next&quot; to upload it.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setShowConfirm(false); setBookingError(""); setPaymentStep("pay"); setReceiptPath(""); setReferenceNumber(""); }}
+                          className="flex-1 py-3 border border-border text-foreground text-sm font-medium rounded-full hover:border-accent transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => setPaymentStep("upload")}
+                          className="flex-1 py-3 bg-accent text-white text-sm font-medium rounded-full btn-premium"
+                        >
+                          I&apos;ve Paid, Next
+                        </button>
+                      </div>
                     </div>
                   )}
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => { setShowConfirm(false); setBookingError(""); }}
-                      className="flex-1 py-3.5 border border-border text-foreground text-sm font-medium rounded-full hover:border-accent transition-colors"
-                    >
-                      Go Back
-                    </button>
-                    <button
-                      disabled={bookingLoading}
-                      onClick={async () => {
-                        setBookingError("");
-                        setBookingLoading(true);
-                        try {
-                          const res = await fetch("/api/bookings", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              date: formatDateISO(selectedDate),
-                              slots: selectedSlots.map((s) => ({
-                                courtId: s.courtId,
-                                hour: s.hour,
-                                rate: getRate(s.hour),
-                              })),
-                              options: {},
-                            }),
-                          });
-                          const data = await res.json();
-                          if (!res.ok) {
-                            setBookingError(data.error || "Booking failed");
-                          } else {
-                            setBookingSuccess(true);
-                            const dateStr = formatDateISO(selectedDate);
-                            fetch(`/api/bookings?date=${dateStr}`)
-                              .then((r) => r.json())
-                              .then((d) => setBookedSlots(d.bookings || []));
-                          }
-                        } catch {
-                          setBookingError("Network error");
-                        }
-                        setBookingLoading(false);
-                      }}
-                      className="flex-1 py-3.5 bg-accent text-white text-sm font-medium rounded-full btn-premium disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {bookingLoading ? "Booking..." : "Confirm Booking"}
-                    </button>
-                  </div>
+                  {/* Step 2: Upload Receipt */}
+                  {paymentStep === "upload" && (
+                    <div className="mb-4">
+                      <div className="bg-cream rounded-xl p-4 mb-3">
+                        {receiptPath ? (
+                          <div className="text-center">
+                            <img src={receiptPath} alt="Receipt" className="max-h-48 mx-auto rounded-lg border border-border mb-2" />
+                            <button
+                              onClick={() => setReceiptPath("")}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Remove &amp; re-upload
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="block cursor-pointer text-center py-6">
+                            <svg className="w-10 h-10 text-warm-gray mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-sm text-foreground font-medium mb-1">
+                              {uploadingReceipt ? "Uploading..." : "Tap to upload receipt"}
+                            </p>
+                            <p className="text-[11px] text-warm-gray">JPEG, PNG, or WebP (max 10MB)</p>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              disabled={uploadingReceipt}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingReceipt(true);
+                                setBookingError("");
+                                try {
+                                  const form = new FormData();
+                                  form.append("receipt", file);
+                                  const res = await fetch("/api/upload", { method: "POST", body: form });
+                                  const data = await res.json();
+                                  if (!res.ok) {
+                                    setBookingError(data.error || "Upload failed");
+                                  } else {
+                                    setReceiptPath(data.path);
+                                  }
+                                } catch {
+                                  setBookingError("Upload failed");
+                                }
+                                setUploadingReceipt(false);
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+
+                      {/* Reference Number */}
+                      <div className="mb-3">
+                        <label className="block text-xs text-warm-gray uppercase tracking-wider mb-1.5">
+                          GCash / Maya Reference Number <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={referenceNumber}
+                          onChange={(e) => setReferenceNumber(e.target.value)}
+                          placeholder="e.g. 1234 5678 9012"
+                          className="w-full bg-cream border border-border rounded-xl px-4 py-2.5 text-foreground placeholder-warm-gray-light text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                        />
+                        <p className="text-[10px] text-warm-gray mt-1">Found on your GCash/Maya payment confirmation screen</p>
+                      </div>
+
+                      {bookingError && (
+                        <div className="mb-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                          {bookingError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setPaymentStep("pay"); setBookingError(""); }}
+                          className="flex-1 py-3 border border-border text-foreground text-sm font-medium rounded-full hover:border-accent transition-colors"
+                        >
+                          Back
+                        </button>
+                        <button
+                          disabled={!receiptPath || !referenceNumber.trim()}
+                          onClick={() => setPaymentStep("confirm")}
+                          className="flex-1 py-3 bg-accent text-white text-sm font-medium rounded-full btn-premium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Confirm */}
+                  {paymentStep === "confirm" && (
+                    <div className="mb-4">
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <div>
+                            <p className="text-xs text-green-700">Receipt uploaded. Ref #: <span className="font-semibold">{referenceNumber}</span></p>
+                            <p className="text-[10px] text-green-600 mt-0.5">Click &quot;Confirm Booking&quot; to submit for approval.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {bookingError && (
+                        <div className="mb-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                          {bookingError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setPaymentStep("upload"); setBookingError(""); }}
+                          className="flex-1 py-3 border border-border text-foreground text-sm font-medium rounded-full hover:border-accent transition-colors"
+                        >
+                          Back
+                        </button>
+                        <button
+                          disabled={bookingLoading}
+                          onClick={async () => {
+                            setBookingError("");
+                            setBookingLoading(true);
+                            try {
+                              const res = await fetch("/api/bookings", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  date: formatDateISO(selectedDate),
+                                  slots: selectedSlots.map((s) => ({
+                                    courtId: s.courtId,
+                                    hour: s.hour,
+                                    rate: getRate(s.hour),
+                                  })),
+                                  options: {},
+                                  receiptPath,
+                                  referenceNumber: referenceNumber.trim(),
+                                }),
+                              });
+                              const data = await res.json();
+                              if (!res.ok) {
+                                setBookingError(data.error || "Booking failed");
+                              } else {
+                                setBookingSuccess(true);
+                                const dateStr = formatDateISO(selectedDate);
+                                fetch(`/api/bookings?date=${dateStr}`)
+                                  .then((r) => r.json())
+                                  .then((d) => setBookedSlots(d.bookings || []));
+                              }
+                            } catch {
+                              setBookingError("Network error");
+                            }
+                            setBookingLoading(false);
+                          }}
+                          className="flex-1 py-3 bg-accent text-white text-sm font-medium rounded-full btn-premium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {bookingLoading ? "Booking..." : "Confirm Booking"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -16,7 +16,7 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
-    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role || "user" } });
   } catch {
     return NextResponse.json({ user: null });
   }

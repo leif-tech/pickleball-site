@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     // Check if email already exists
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email.toLowerCase());
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       "INSERT INTO users (name, email, phone, password_hash) VALUES (?, ?, ?, ?)"
     ).run(name, email.toLowerCase(), phone, password_hash);
 
-    const user = { id: result.lastInsertRowid as number, name, email: email.toLowerCase(), phone };
+    const user = { id: result.lastInsertRowid as number, name, email: email.toLowerCase(), phone, role: "user" };
     const token = createToken(user);
 
     const cookieStore = await cookies();

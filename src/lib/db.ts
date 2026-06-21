@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import path from "path";
+import bcrypt from "bcryptjs";
 
 const dbPath = path.join(process.cwd(), "pickleball.db");
 
@@ -16,6 +17,7 @@ db.exec(`
     email TEXT NOT NULL UNIQUE,
     phone TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -45,5 +47,26 @@ db.exec(`
     UNIQUE(court_id, date, hour)
   );
 `);
+
+// Idempotent migrations
+try { db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`); } catch { /* exists */ }
+try { db.exec(`ALTER TABLE bookings ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'confirmed'`); } catch { /* exists */ }
+try { db.exec(`ALTER TABLE bookings ADD COLUMN receipt_path TEXT`); } catch { /* exists */ }
+try { db.exec(`ALTER TABLE bookings ADD COLUMN reference_number TEXT`); } catch { /* exists */ }
+
+// Seed default admin account
+try {
+  const adminEmail = "admin@pickleball.com";
+  const existingAdmin = db.prepare("SELECT id FROM users WHERE email = ?").get(adminEmail) as { id: number } | undefined;
+  if (!existingAdmin) {
+    const hash = bcrypt.hashSync("admin-change-me", 10);
+    db.prepare(
+      "INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)"
+    ).run("Admin", adminEmail, "0000000000", hash, "admin");
+  } else {
+    // Ensure existing admin has admin role
+    db.prepare("UPDATE users SET role = 'admin' WHERE email = ?").run(adminEmail);
+  }
+} catch { /* admin already seeded */ }
 
 export default db;

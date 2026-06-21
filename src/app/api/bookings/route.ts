@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 });
     }
 
-    const { slots, date, options } = await request.json();
+    const { slots, date, options, receiptPath, referenceNumber } = await request.json();
 
     if (!slots || !Array.isArray(slots) || slots.length === 0 || !date) {
       return NextResponse.json({ error: "Invalid booking data" }, { status: 400 });
@@ -100,10 +100,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Maximum 8 slots per booking" }, { status: 400 });
     }
 
+    // Validate receipt and reference number
+    if (!receiptPath) {
+      return NextResponse.json({ error: "Payment receipt is required" }, { status: 400 });
+    }
+    if (!referenceNumber || !referenceNumber.trim()) {
+      return NextResponse.json({ error: "Reference number is required" }, { status: 400 });
+    }
+
     // Insert all slots in a transaction (server calculates rate)
+    const paymentStatus = "pending";
     const insertBooking = db.prepare(
-      `INSERT INTO bookings (user_id, court_id, date, hour, rate, need_equipment, first_time, bringing_guests, need_parking, playing_competitive)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO bookings (user_id, court_id, date, hour, rate, payment_status, receipt_path, reference_number, need_equipment, first_time, bringing_guests, need_parking, playing_competitive)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
 
     const insertAll = db.transaction((items: { courtId: number; hour: number }[]) => {
@@ -114,6 +123,9 @@ export async function POST(request: Request) {
           date,
           slot.hour,
           getServerRate(slot.hour),
+          paymentStatus,
+          receiptPath,
+          referenceNumber.trim(),
           options?.needEquipment ? 1 : 0,
           options?.firstTime ? 1 : 0,
           options?.bringingGuests ? 1 : 0,

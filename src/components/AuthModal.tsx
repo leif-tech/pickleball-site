@@ -402,6 +402,15 @@ export default function AuthModal({
                     ? "Create Account"
                     : "Log In"}
                 </button>
+
+                {tab === "signup" && (
+                  <p className="text-center text-[11px] text-warm-gray mt-3">
+                    By signing up, you agree to our{" "}
+                    <a href="/terms" target="_blank" className="underline text-foreground hover:text-accent">Terms</a>
+                    {" "}and{" "}
+                    <a href="/privacy" target="_blank" className="underline text-foreground hover:text-accent">Privacy Policy</a>.
+                  </p>
+                )}
               </form>
 
               <p className="text-center text-sm text-warm-gray mt-5">

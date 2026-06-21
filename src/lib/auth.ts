@@ -8,6 +8,7 @@ export interface UserPayload {
   name: string;
   email: string;
   phone: string;
+  role: string;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -20,7 +21,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 export function createToken(user: UserPayload): string {
   return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, phone: user.phone },
+    { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );

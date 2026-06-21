@@ -23,34 +23,11 @@ function useInView(threshold = 0.15) {
   return { ref, isVisible };
 }
 
-/* ─── Floating Book Now Button ─── */
-function FloatingBookButton() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setVisible(window.scrollY > 400);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  return (
-    <a
-      href="/book"
-      className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-50 btn-premium px-6 py-3 sm:px-7 sm:py-3.5 bg-accent text-white text-sm font-medium rounded-full shadow-lg transition-all duration-500 ${
-        visible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4 pointer-events-none"
-      }`}
-    >
-      Book Now
-    </a>
-  );
-}
 
 /* ─── Hero ─── */
-function Hero({ onAuthClick, user, onLogout }: { onAuthClick: (tab: "signup" | "login") => void; user: { name: string } | null; onLogout: () => void }) {
+function Hero({ onAuthClick, user, onLogout }: { onAuthClick: (tab: "signup" | "login") => void; user: { name: string; role?: string } | null; onLogout: () => void }) {
   return (
-    <section className="relative z-[1] min-h-screen flex items-center pb-16 px-6 lg:px-10" style={{ marginTop: '-100px', paddingTop: '100px', background: '#ffffff' }}>
+    <section className="relative z-[1] min-h-screen flex flex-col" style={{ background: '#ffffff' }}>
       {/* Background image */}
       <div className="absolute inset-0 overflow-hidden">
         <img
@@ -62,8 +39,9 @@ function Hero({ onAuthClick, user, onLogout }: { onAuthClick: (tab: "signup" | "
         {/* Extra overlay on mobile for text readability */}
         <div className="absolute inset-0 bg-white/40 sm:hidden" />
       </div>
-      {/* Top logo */}
-      <div className="absolute left-6 lg:left-10 animate-fade-in opacity-0 z-10" style={{ top: '108px' }}>
+
+      {/* Top nav bar */}
+      <div className="relative z-10 flex items-center justify-between px-6 lg:px-10 pt-6 pb-4 animate-fade-in opacity-0">
         <a href="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
             <svg className="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -74,52 +52,43 @@ function Hero({ onAuthClick, user, onLogout }: { onAuthClick: (tab: "signup" | "
             PICKLEBALL
           </span>
         </a>
-      </div>
 
-      {/* Auth buttons */}
-      <div className="absolute right-6 lg:right-10 animate-fade-in opacity-0 z-10 flex items-center gap-3" style={{ top: '108px' }}>
-        {user ? (
-          <>
+        <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              {user.role === "admin" && (
+                <a
+                  href="/admin"
+                  className="hidden sm:inline-flex px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 rounded-full hover:bg-accent hover:text-white transition-all duration-200"
+                >
+                  Admin
+                </a>
+              )}
+              <a
+                href="/book"
+                className="px-5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white bg-white/15 backdrop-blur-sm border border-white/40 rounded-full hover:bg-white/25 transition-all duration-300"
+              >
+                Book &amp; Play
+              </a>
+              <button
+                onClick={onLogout}
+                className="hidden sm:inline-block px-3 py-1.5 text-xs text-white/70 hover:text-white transition-colors"
+              >
+                Log Out
+              </button>
+            </>
+          ) : (
             <a
               href="/book"
-              className="hidden sm:inline-flex px-4 py-2 text-xs font-medium text-warm-gray border border-border rounded-full hover:text-foreground hover:border-accent/30 transition-all duration-300"
+              className="px-5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white bg-white/15 backdrop-blur-sm border border-white/40 rounded-full hover:bg-white/25 transition-all duration-300"
             >
-              Book & Play
+              Book &amp; Play
             </a>
-            <a
-              href="/book"
-              className="flex items-center gap-2 px-3 py-1.5 bg-cream rounded-full hover:bg-cream-dark transition-colors"
-            >
-              <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                <span className="text-[10px] text-white font-bold">{user.name.charAt(0)}</span>
-              </div>
-              <span className="text-xs text-foreground font-medium hidden sm:inline">{user.name}</span>
-            </a>
-            <button
-              onClick={onLogout}
-              className="px-2 sm:px-3 py-1.5 text-xs text-warm-gray hover:text-foreground transition-colors"
-            >
-              Log Out
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => onAuthClick("signup")}
-            className="group flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-xs font-medium rounded-full btn-premium shadow-md hover:shadow-lg transition-all duration-300"
-          >
-            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            Sign Up / Log In
-            <svg className="w-3 h-3 opacity-60 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
+      <div className="relative z-[1] flex-1 flex items-center px-6 lg:px-10 pb-16">
       <div className="max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left */}
@@ -218,6 +187,7 @@ function Hero({ onAuthClick, user, onLogout }: { onAuthClick: (tab: "signup" | "
             </div>
           </div>
         </div>
+      </div>
       </div>
     </section>
   );
@@ -455,7 +425,7 @@ function FAQ() {
   ];
 
   return (
-    <section className="relative z-[1] py-12 sm:py-14 px-6 lg:px-10 bg-background" ref={ref}>
+    <section id="faq" className="relative z-[1] py-12 sm:py-14 px-6 lg:px-10 bg-background" ref={ref}>
       <div className="max-w-3xl mx-auto">
         <div className={`text-center mb-8 ${isVisible ? "animate-reveal-up" : "opacity-0"}`}>
           <p className="text-warm-gray text-sm tracking-wide mb-3">FAQ</p>
@@ -673,9 +643,13 @@ function Footer() {
           </a>
         </div>
 
-        <p className="text-xs text-warm-gray">
-          &copy; {new Date().getFullYear()} Pickleball. All rights reserved.
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-warm-gray">
+            &copy; {new Date().getFullYear()} Pickleball. All rights reserved.
+          </p>
+          <a href="/terms" className="text-xs text-warm-gray hover:text-foreground transition-colors">Terms</a>
+          <a href="/privacy" className="text-xs text-warm-gray hover:text-foreground transition-colors">Privacy</a>
+        </div>
       </div>
     </footer>
   );
@@ -694,7 +668,6 @@ export default function Home() {
 
   return (
     <main>
-      <FloatingBookButton />
       <Hero onAuthClick={openAuth} user={user} onLogout={logout} />
       {showAuth && (
         <AuthModal onClose={() => setShowAuth(false)} initialTab={authTab} redirectTo="/book" />

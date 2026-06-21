@@ -9,6 +9,7 @@ interface UserRow {
   email: string;
   phone: string;
   password_hash: string;
+  role: string;
 }
 
 export async function POST(request: Request) {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     const row = db.prepare(
-      "SELECT id, name, email, phone, password_hash FROM users WHERE email = ?"
+      "SELECT id, name, email, phone, password_hash, role FROM users WHERE email = ?"
     ).get(email.toLowerCase()) as UserRow | undefined;
 
     if (!row) {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
-    const user = { id: row.id, name: row.name, email: row.email, phone: row.phone };
+    const user = { id: row.id, name: row.name, email: row.email, phone: row.phone, role: row.role || "user" };
     const token = createToken(user);
 
     const cookieStore = await cookies();
